@@ -273,12 +273,13 @@ export class XRideProtocol {
     }
 
     private addImageEditor(index: number, content: string, visible: boolean) {
-        console.log("Adding editor (image): ", index)
         if (this.editors.has(index)) {
+            console.log("Updating editor (image): ", index)
             let editor = this.editors.get(index)!!;
             editor.setContent(new IXRideImageContent(content));
             editor.setVisible(visible);
         } else {
+            console.log("Adding editor (image): ", index)
             let editor = new Editor(new IXRideImageContent(content));
             this.editors.set(index, editor);
             editor.setVisible(visible);
