@@ -12,24 +12,53 @@ export interface IXRideText {
     fontColor: string;
 }
 
-type EditorStateChangeListener = (editor: Editor) => void;
+export interface IXRideContent {
+    content: any;
+}
 
-export class Editor {
-    private visible: boolean = true;
-    private selected: boolean = false;
-    private content: Array<IXRideText>;
-    private listeners: EditorStateChangeListener[] = [];
+export class IXRideTextContent implements IXRideContent {
+    content: Array<IXRideText>;
 
     constructor(content: Array<IXRideText>) {
         this.content = content;
     }
+}
 
-    setContent(content: Array<IXRideText>) {
+export class IXRideImageContent implements IXRideContent {
+    content: string;
+    image: HTMLImageElement;
+
+    constructor(content: string) {
+        this.content = content;
+        this.image = new Image();
+        this.image.src = "data:image/png;base64," + content;
+    }
+
+    getImage(): HTMLImageElement {
+        return this.image;
+    }
+}
+
+type EditorStateChangeListener = (editor: Editor) => void;
+type EditorChangeListener = (number: number, editor: Editor) => void;
+
+export class Editor {
+    private disposed: boolean = false;
+    private visible: boolean = true;
+    private selected: boolean = false;
+    private content: IXRideContent;
+    private listeners: EditorStateChangeListener[] = [];
+
+    constructor(content: IXRideContent) {
+        this.content = content;
+    }
+
+    setContent(content: IXRideContent) {
         this.content = content;
         this.notifyListeners();
     }
 
-    getContent(): Array<IXRideText> {
+    getContent(): IXRideContent {
         return this.content;
     }
 
@@ -55,6 +84,15 @@ export class Editor {
         return this.selected;
     }
 
+    isDisposed(): boolean {
+        return this.disposed;
+    }
+
+    dispose() {
+        this.disposed = true;
+        this.notifyListeners();
+    }
+
     private notifyListeners() {
         this.listeners.forEach(listener => listener(this));
     }
@@ -71,6 +109,7 @@ export class XRideProtocol {
     private editors: Map<number, Editor> = new Map();
     private transmitAudio: boolean = true;
     private sessionId: string = "";
+    private listeners: EditorChangeListener[] = [];
 
     constructor(config: IXRideConfig) {
         this.config = {
@@ -133,24 +172,6 @@ export class XRideProtocol {
                     break;
                 case 'icecandidate':
                     this.handleIceCandidate(message.candidate);
-                    break;
-                case 'remove_editor':
-                    this.removeEditor(message.number);
-                    break;
-                case 'hide_editors':
-                    this.hideEditors();
-                    break;
-                case 'show_editors':
-                    this.showEditors();
-                    break;
-                case 'add_editor':
-                    this.addEditor(message.number, message.chunk, false);
-                    break;
-                case 'set_selected_editor':
-                    this.setSelectedEditor(message.number);
-                    break;
-                case 'file':
-                    this.handleFile(message);
                     break;
                 default:
                     throw new Error('Unknown message type');
@@ -225,14 +246,35 @@ export class XRideProtocol {
 
     private removeEditor(index: number) {
         console.log("Removing editor: ", index)
-        this.editors.delete(index)
+        let editor = this.editors.get(index)
+        if (editor) {
+            editor.dispose();
+            this.editors.delete(index);
+        } else {
+            console.error("Editor not found: ", index)
+        }
     }
 
-    private addEditor(index: number, content: Array<IXRideText>, visible: boolean) {
-        console.log("Adding editor: ", index)
-        const editor = new Editor(content);
+    private addImageEditor(index: number, content: string, visible: boolean) {
+        console.log("Adding editor (image): ", index)
+        let editor: Editor
+        if (this.editors.has(index)) {
+            editor = this.editors.get(index);
+            editor.setContent(new IXRideImageContent(content));
+        } else {
+            editor = new Editor(new IXRideImageContent(content));
+            this.editors.set(index, editor);
+        }
         editor.setVisible(visible);
-        this.editors.set(index, editor);
+        this.notifyListeners(index, editor);
+    }
+
+    private notifyListeners(index: number, editor: Editor) {
+        this.listeners.forEach(listener => listener(index, editor));
+    }
+
+    addEditorChangeListener(listener: EditorChangeListener) {
+        this.listeners.push(listener);
     }
 
     private setSelectedEditor(index: number) {
@@ -296,9 +338,34 @@ export class XRideProtocol {
         this.dc.binaryType = 'arraybuffer';
 
         this.dc.onmessage = (event: MessageEvent) => {
-            const data = JSON.parse(event.data);
+            const message = JSON.parse(event.data);
+            console.log('Data channel message received: ', message.type);
+
+            switch (message.type) {
+                case 'remove_editor':
+                    this.removeEditor(message.number);
+                    break;
+                case 'hide_editors':
+                    this.hideEditors();
+                    break;
+                case 'show_editors':
+                    this.showEditors();
+                    break;
+                case 'add_editor':
+                    this.addImageEditor(message.number, message.chunk, false);
+                    break;
+                case 'set_selected_editor':
+                    this.setSelectedEditor(message.number);
+                    break;
+                case 'file':
+                    this.handleFile(message);
+                    break;
+                default:
+                    throw new Error('Unknown message type');
+            }
+
             if (this.config.onDataChannelMessage) {
-                this.config.onDataChannelMessage(data);
+                this.config.onDataChannelMessage(message);
             }
         };
 
