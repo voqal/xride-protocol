@@ -260,7 +260,7 @@ export class XRideProtocol {
         console.log("Adding editor (image): ", index)
         let editor: Editor
         if (this.editors.has(index)) {
-            editor = this.editors.get(index);
+            editor = this.editors.get(index)!!;
             editor.setContent(new IXRideImageContent(content));
         } else {
             editor = new Editor(new IXRideImageContent(content));
