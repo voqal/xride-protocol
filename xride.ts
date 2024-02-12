@@ -286,6 +286,9 @@ export class XRideProtocol {
     }
 
     setSelectedEditor(index: number) {
+        if (this.editors.get(index)?.isSelected()) {
+            return //already selected
+        }
         this.doSelectEditor(index)
 
         const json = {
