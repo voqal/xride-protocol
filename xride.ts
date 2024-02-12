@@ -39,8 +39,9 @@ export class IXRideImageContent implements IXRideContent {
     }
 }
 
+type EditorChangeType = "add_editor" | "remove_editor" | "hide_editors" | "show_editors" | "selected_editor" | "file";
 type EditorStateChangeListener = (editor: Editor) => void;
-type EditorChangeListener = (number: number, editor: Editor) => void;
+type EditorChangeListener = (number: number, editor: Editor, type: EditorChangeType) => void;
 
 export class Editor {
     private disposed: boolean = false;
@@ -273,20 +274,20 @@ export class XRideProtocol {
 
     private addImageEditor(index: number, content: string, visible: boolean) {
         console.log("Adding editor (image): ", index)
-        let editor: Editor
         if (this.editors.has(index)) {
-            editor = this.editors.get(index)!!;
+            let editor = this.editors.get(index)!!;
             editor.setContent(new IXRideImageContent(content));
+            editor.setVisible(visible);
         } else {
-            editor = new Editor(new IXRideImageContent(content));
+            let editor = new Editor(new IXRideImageContent(content));
             this.editors.set(index, editor);
+            editor.setVisible(visible);
+            this.notifyListeners(index, editor, "add_editor");
         }
-        editor.setVisible(visible);
-        this.notifyListeners(index, editor);
     }
 
-    private notifyListeners(index: number, editor: Editor) {
-        this.listeners.forEach(listener => listener(index, editor));
+    private notifyListeners(index: number, editor: Editor, type: EditorChangeType) {
+        this.listeners.forEach(listener => listener(index, editor, type));
     }
 
     addEditorChangeListener(listener: EditorChangeListener) {
