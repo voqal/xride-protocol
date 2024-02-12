@@ -39,8 +39,10 @@ export class IXRideImageContent implements IXRideContent {
     }
 }
 
+type EditorStateChangeType = "content" | "visible" | "selected" | "disposed";
+type EditorStateChangeListener = (editor: Editor, type: EditorStateChangeType) => void;
+
 type EditorChangeType = "add_editor" | "remove_editor" | "hide_editors" | "show_editors" | "selected_editor" | "file";
-type EditorStateChangeListener = (editor: Editor) => void;
 type EditorChangeListener = (number: number, editor: Editor, type: EditorChangeType) => void;
 
 export class Editor {
@@ -59,7 +61,7 @@ export class Editor {
             throw new Error('Editor is disposed');
         }
         this.content = content;
-        this.notifyListeners();
+        this.notifyListeners("content");
     }
 
     getContent(): IXRideContent {
@@ -76,9 +78,11 @@ export class Editor {
     setVisible(visible: boolean) {
         if (this.disposed) {
             throw new Error('Editor is disposed');
+        } else if (this.visible === visible) {
+            return; //no change
         }
         this.visible = visible;
-        this.notifyListeners();
+        this.notifyListeners("visible");
     }
 
     isVisible(): boolean {
@@ -88,9 +92,11 @@ export class Editor {
     setSelected(selected: boolean) {
         if (this.disposed) {
             throw new Error('Editor is disposed');
+        } else if (this.selected === selected) {
+            return; //no change
         }
         this.selected = selected;
-        this.notifyListeners();
+        this.notifyListeners("selected");
     }
 
     isSelected(): boolean {
@@ -106,11 +112,11 @@ export class Editor {
             throw new Error('Editor is disposed');
         }
         this.disposed = true;
-        this.notifyListeners();
+        this.notifyListeners("disposed");
     }
 
-    private notifyListeners() {
-        this.listeners.forEach(listener => listener(this));
+    private notifyListeners(type: EditorStateChangeType) {
+        this.listeners.forEach(listener => listener(this, type));
     }
 }
 
