@@ -105,9 +105,10 @@ export class XRideProtocol {
     private dc?: RTCDataChannel;
     private localStream: MediaStream[] = []
     // private localAudio: HTMLAudioElement = document.createElement('audio')
-    private receivedChunkMap = new Map<number, any[]>()
+    // @ts-ignore
+    private receivedChunkMap = new Map<number, any[]>();
+    // @ts-ignore
     private editors: Map<number, Editor> = new Map();
-    private transmitAudio: boolean = true;
     private sessionId: string = "";
     private listeners: EditorChangeListener[] = [];
 
@@ -277,11 +278,21 @@ export class XRideProtocol {
         this.listeners.push(listener);
     }
 
-    private setSelectedEditor(index: number) {
+    private doSelectEditor(index: number) {
         console.log("Setting selected editor: ", index)
         this.editors.forEach((editor, key) => {
             editor.setSelected(key === index);
         });
+    }
+
+    setSelectedEditor(index: number) {
+        this.doSelectEditor(index)
+
+        const json = {
+            "number": index,
+            "type": "selected_editor"
+        }
+        this.sendMessage(json)
     }
 
     private hideEditors() {
@@ -294,15 +305,6 @@ export class XRideProtocol {
         this.editors.forEach((editor, index) => {
             editor.setVisible(true)
         });
-    }
-
-    onEditorSelected(currentSelected: number, previousSelected: number) {
-        const json = {
-            "number": currentSelected,
-            "previous": previousSelected,
-            "type": "selected_monitor"
-        }
-        this.sendMessage(json)
     }
 
     private negotiate() {
@@ -355,7 +357,7 @@ export class XRideProtocol {
                     this.addImageEditor(message.number, message.chunk, false);
                     break;
                 case 'set_selected_editor':
-                    this.setSelectedEditor(message.number);
+                    this.doSelectEditor(message.number);
                     break;
                 case 'file':
                     this.handleFile(message);
