@@ -54,6 +54,9 @@ export class Editor {
     }
 
     setContent(content: IXRideContent) {
+        if (this.disposed) {
+            throw new Error('Editor is disposed');
+        }
         this.content = content;
         this.notifyListeners();
     }
@@ -63,10 +66,16 @@ export class Editor {
     }
 
     addListener(listener: EditorStateChangeListener) {
+        if (this.disposed) {
+            throw new Error('Editor is disposed');
+        }
         this.listeners.push(listener);
     }
 
     setVisible(visible: boolean) {
+        if (this.disposed) {
+            throw new Error('Editor is disposed');
+        }
         this.visible = visible;
         this.notifyListeners();
     }
@@ -76,6 +85,9 @@ export class Editor {
     }
 
     setSelected(selected: boolean) {
+        if (this.disposed) {
+            throw new Error('Editor is disposed');
+        }
         this.selected = selected;
         this.notifyListeners();
     }
@@ -89,6 +101,9 @@ export class Editor {
     }
 
     dispose() {
+        if (this.disposed) {
+            throw new Error('Editor is disposed');
+        }
         this.disposed = true;
         this.notifyListeners();
     }
