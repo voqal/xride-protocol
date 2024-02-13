@@ -51,6 +51,8 @@ export class Editor {
     private selected: boolean = false;
     private content: IXRideContent;
     private listeners: EditorStateChangeListener[] = [];
+    // @ts-ignore
+    private userData: Map<string, any> = new Map();
 
     constructor(content: IXRideContent) {
         this.content = content;
@@ -113,6 +115,14 @@ export class Editor {
         }
         this.disposed = true;
         this.notifyListeners("disposed");
+    }
+
+    setUserData(key: string, value: any) {
+        this.userData.set(key, value);
+    }
+
+    getUserData(key: string): any {
+        return this.userData.get(key);
     }
 
     private notifyListeners(type: EditorStateChangeType) {
