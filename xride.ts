@@ -436,4 +436,8 @@ export class XRideProtocol {
         this.ws.close();
         this.pc.close();
     }
+
+    public getSessionId(): string {
+        return this.sessionId;
+    }
 }
