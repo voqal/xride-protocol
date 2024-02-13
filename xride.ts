@@ -46,16 +46,23 @@ type EditorChangeType = "add_editor" | "remove_editor" | "hide_editors" | "show_
 type EditorChangeListener = (number: number, editor: Editor, type: EditorChangeType) => void;
 
 export class Editor {
+
     private disposed: boolean = false;
     private visible: boolean = true;
     private selected: boolean = false;
+    private readonly filename: string;
     private content: IXRideContent;
     private listeners: EditorStateChangeListener[] = [];
     // @ts-ignore
     private userData: Map<string, any> = new Map();
 
-    constructor(content: IXRideContent) {
+    constructor(filename: string, content: IXRideContent) {
+        this.filename = filename;
         this.content = content;
+    }
+
+    getFilename(): string {
+        return this.filename;
     }
 
     setContent(content: IXRideContent) {
@@ -282,7 +289,11 @@ export class XRideProtocol {
         }
     }
 
-    private addImageEditor(index: number, content: string, visible: boolean) {
+    private addImageEditor(message: any) {
+        let index = message.number
+        let name = message.name
+        let content = message.content
+        let visible = true
         if (this.editors.has(index)) {
             console.log("Updating editor (image): ", index)
             let editor = this.editors.get(index)!!;
@@ -290,7 +301,7 @@ export class XRideProtocol {
             editor.setVisible(visible);
         } else {
             console.log("Adding editor (image): ", index)
-            let editor = new Editor(new IXRideImageContent(content));
+            let editor = new Editor(name, new IXRideImageContent(content));
             this.editors.set(index, editor);
             editor.setVisible(visible);
             this.notifyListeners(index, editor, "add_editor");
@@ -384,7 +395,7 @@ export class XRideProtocol {
                     this.showEditors();
                     break;
                 case 'add_editor':
-                    this.addImageEditor(message.number, message.chunk, false);
+                    this.addImageEditor(message);
                     break;
                 case 'set_selected_editor':
                     this.doSelectEditor(message.number);
