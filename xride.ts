@@ -292,7 +292,7 @@ export class XRideProtocol {
     private addImageEditor(message: any) {
         let index = message.number
         let name = message.name
-        let content = message.content
+        let content = message.chunk
         let visible = true
         if (this.editors.has(index)) {
             console.log("Updating editor (image): ", index)
