@@ -126,7 +126,6 @@ export class XRideProtocol {
     private config: IXRideConfig;
     private dc?: RTCDataChannel;
     private localStream: MediaStream[] = []
-    // private localAudio: HTMLAudioElement = document.createElement('audio')
     // @ts-ignore
     private receivedChunkMap = new Map<number, any[]>();
     // @ts-ignore
@@ -152,11 +151,6 @@ export class XRideProtocol {
                     this.localStream.push(stream)
                     this.setupWebSocket();
                     this.setupPeerConnection();
-                    // this.localAudio.srcObject = stream
-                    // this.localAudio.autoplay = true
-                    // this.localAudio.addEventListener('loadedmetadata', () => {
-                    //     console.log('audio loaded')
-                    // });
                 })
                 .catch((err) => {
                     console.error(`Failed to get user media: ${err}`);
