@@ -55,6 +55,8 @@ export class Editor {
     private listeners: EditorStateChangeListener[] = [];
     // @ts-ignore
     private userData: Map<string, any> = new Map();
+    private status: string = "WAITING";
+    private statusMessage: string = "";
 
     constructor(filename: string, content: IXRideContent) {
         this.filename = filename;
@@ -130,6 +132,19 @@ export class Editor {
 
     getUserData(key: string): any {
         return this.userData.get(key);
+    }
+
+    setStatus(status: string, message: string) {
+        this.status = status;
+        this.statusMessage = message;
+    }
+
+    getStatus(): string {
+        return this.status;
+    }
+
+    getStatusMessage(): string {
+        return this.statusMessage;
     }
 
     private notifyListeners(type: EditorStateChangeType) {
@@ -313,6 +328,13 @@ export class XRideProtocol {
         this.listeners.push(listener);
     }
 
+    private setEditorStatus(index: number, status: string, message: string) {
+        let editor = this.editors.get(index)
+        if (editor) {
+            editor.setStatus(status, message)
+        }
+    }
+
     private doSelectEditor(index: number) {
         console.log("Setting selected editor: ", index)
         this.editors.forEach((editor, key) => {
@@ -398,6 +420,9 @@ export class XRideProtocol {
                     break;
                 case 'set_selected_editor':
                     this.doSelectEditor(message.number);
+                    break;
+                case 'set_editor_status':
+                    this.setEditorStatus(message.number, message.status, message.message);
                     break;
                 case 'file':
                     this.handleFile(message);
