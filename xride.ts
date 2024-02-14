@@ -394,8 +394,8 @@ export class XRideProtocol {
         }
     }
 
-    private notifyListeners(type: IdeChangeType, window?: XRWindow) {
-        this.listeners.forEach(listener => listener(type, window));
+    private notifyListeners(type: IdeChangeType, xrWindow?: XRWindow) {
+        this.listeners.forEach(listener => listener(type, xrWindow));
     }
 
     addIdeChangeListener(listener: IdeChangeListener) {
