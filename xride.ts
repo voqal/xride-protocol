@@ -305,17 +305,14 @@ export class XRideProtocol {
         let index = message.number
         let name = message.name
         let content = message.chunk
-        let visible = true
         if (this.editors.has(index)) {
             console.log("Updating editor (image): ", index)
             let editor = this.editors.get(index)!!;
             editor.setContent(new IXRideImageContent(content));
-            editor.setVisible(visible);
         } else {
             console.log("Adding editor (image): ", index)
             let editor = new Editor(name, new IXRideImageContent(content));
             this.editors.set(index, editor);
-            editor.setVisible(visible);
             this.notifyListeners(index, editor, "add_editor");
         }
     }
