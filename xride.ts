@@ -336,6 +336,8 @@ export class XRideProtocol {
         let editor = this.editors.get(index)
         if (editor) {
             editor.setStatus(status, message)
+        } else {
+            console.error("Editor not found: ", index)
         }
     }
 
