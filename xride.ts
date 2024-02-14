@@ -294,7 +294,7 @@ export class XRideProtocol {
         let name = message.name
         let content = message.chunk
         if (this.editors.has(index)) {
-            console.log("Updating editor (image): ", index)
+            //console.log("Updating editor (image): ", index)
             let editor = this.editors.get(index)!!;
             editor.setContent(new IXRideImageContent(content));
         } else {
@@ -334,12 +334,14 @@ export class XRideProtocol {
     }
 
     private hideIde() {
+        console.log("Hiding IDE")
         this.editors.forEach((editor, index) => {
             editor.setVisible(false)
         });
     }
 
     private showIde() {
+        console.log("Showing IDE")
         this.editors.forEach((editor, index) => {
             editor.setVisible(true)
         });
@@ -379,7 +381,7 @@ export class XRideProtocol {
 
         this.dc.onmessage = (event: MessageEvent) => {
             const message = JSON.parse(event.data);
-            console.log('Data channel message received: ', message.type);
+            //console.log('Data channel message received: ', message.type);
 
             switch (message.type) {
                 case 'hide_ide':
