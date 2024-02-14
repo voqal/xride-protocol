@@ -39,7 +39,7 @@ export class IXRideImageContent implements IXRideContent {
     }
 }
 
-type EditorStateChangeType = "content" | "visible" | "selected" | "disposed";
+type EditorStateChangeType = "status" | "content" | "visible" | "selected" | "disposed";
 type EditorStateChangeListener = (editor: Editor, type: EditorStateChangeType) => void;
 
 type EditorChangeType = "add_editor" | "remove_editor" | "hide_editors" | "show_editors" | "selected_editor" | "file";
@@ -135,8 +135,12 @@ export class Editor {
     }
 
     setStatus(status: string, message: string) {
+        if (this.disposed) {
+            throw new Error('Editor is disposed');
+        }
         this.status = status;
         this.statusMessage = message;
+        this.notifyListeners("status");
     }
 
     getStatus(): string {
