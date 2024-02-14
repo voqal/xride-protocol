@@ -39,32 +39,76 @@ export class IXRideImageContent implements IXRideContent {
     }
 }
 
-type EditorStateChangeType = "status" | "content" | "visible" | "selected" | "disposed";
-type EditorStateChangeListener = (editor: Editor, type: EditorStateChangeType) => void;
+type XRWindowChangeType = "status" | "content" | "visible" | "selected" | "disposed";
+type XRWindowChangeListener = (window: XRWindow, type: XRWindowChangeType) => void;
 
-type EditorChangeType = "add_editor" | "remove_editor" | "hide_editors" | "show_editors" | "selected_editor" | "file";
-type EditorChangeListener = (number: number, editor: Editor, type: EditorChangeType) => void;
+type IdeChangeType =
+    "add_tool_window"
+    | "remove_tool_window"
+    | "add_editor"
+    | "remove_editor"
+    | "hide_ide"
+    | "show_ide"
+    | "selected_editor"
+    | "file";
+type IdeChangeListener = (type: IdeChangeType, window?: XRWindow) => void;
 
-export class Editor {
-
-    private disposed: boolean = false;
-    private visible: boolean = true;
-    private selected: boolean = false;
-    private readonly filename: string;
-    private content: IXRideContent;
-    private listeners: EditorStateChangeListener[] = [];
+export class XRWindow {
+    protected id: number;
+    protected disposed: boolean = false;
+    protected visible: boolean = true;
+    protected selected: boolean = false;
+    protected content: IXRideContent;
     // @ts-ignore
-    private userData: Map<string, any> = new Map();
-    private status: string = "WAITING";
-    private statusMessage: string = "";
+    protected userData: Map<string, any> = new Map();
+    private listeners: XRWindowChangeListener[] = [];
 
-    constructor(filename: string, content: IXRideContent) {
-        this.filename = filename;
+    constructor(id: number, content: IXRideContent) {
+        this.id = id;
         this.content = content;
     }
 
-    getFilename(): string {
-        return this.filename;
+    getId(): number {
+        return this.id;
+    }
+
+    isEditor(): boolean {
+        return this instanceof Editor;
+    }
+
+    isToolWindow(): boolean {
+        return this instanceof ToolWindow;
+    }
+
+    getContent(): IXRideContent {
+        return this.content;
+    }
+
+    isVisible(): boolean {
+        return this.visible;
+    }
+
+    isSelected(): boolean {
+        return this.selected;
+    }
+
+    isDisposed(): boolean {
+        return this.disposed;
+    }
+
+    setUserData(key: string, value: any) {
+        this.userData.set(key, value);
+    }
+
+    getUserData(key: string): any {
+        return this.userData.get(key);
+    }
+
+    addListener(listener: XRWindowChangeListener) {
+        if (this.disposed) {
+            throw new Error('Editor is disposed');
+        }
+        this.listeners.push(listener);
     }
 
     setContent(content: IXRideContent) {
@@ -75,15 +119,12 @@ export class Editor {
         this.notifyListeners("content");
     }
 
-    getContent(): IXRideContent {
-        return this.content;
-    }
-
-    addListener(listener: EditorStateChangeListener) {
+    dispose() {
         if (this.disposed) {
             throw new Error('Editor is disposed');
         }
-        this.listeners.push(listener);
+        this.disposed = true;
+        this.notifyListeners("disposed");
     }
 
     setVisible(visible: boolean) {
@@ -96,10 +137,6 @@ export class Editor {
         this.notifyListeners("visible");
     }
 
-    isVisible(): boolean {
-        return this.visible;
-    }
-
     setSelected(selected: boolean) {
         if (this.disposed) {
             throw new Error('Editor is disposed');
@@ -110,28 +147,23 @@ export class Editor {
         this.notifyListeners("selected");
     }
 
-    isSelected(): boolean {
-        return this.selected;
+    protected notifyListeners(type: XRWindowChangeType) {
+        this.listeners.forEach(listener => listener(this, type));
+    }
+}
+
+export class Editor extends XRWindow {
+    private readonly filename: string;
+    private status: string = "WAITING";
+    private statusMessage: string = "";
+
+    constructor(id: number, filename: string, content: IXRideContent) {
+        super(id, content);
+        this.filename = filename;
     }
 
-    isDisposed(): boolean {
-        return this.disposed;
-    }
-
-    dispose() {
-        if (this.disposed) {
-            throw new Error('Editor is disposed');
-        }
-        this.disposed = true;
-        this.notifyListeners("disposed");
-    }
-
-    setUserData(key: string, value: any) {
-        this.userData.set(key, value);
-    }
-
-    getUserData(key: string): any {
-        return this.userData.get(key);
+    getFilename(): string {
+        return this.filename;
     }
 
     setStatus(status: string, message: string) {
@@ -150,9 +182,18 @@ export class Editor {
     getStatusMessage(): string {
         return this.statusMessage;
     }
+}
 
-    private notifyListeners(type: EditorStateChangeType) {
-        this.listeners.forEach(listener => listener(this, type));
+export class ToolWindow extends XRWindow {
+    private readonly title: string;
+
+    constructor(id: number, title: string, content: IXRideContent) {
+        super(id, content);
+        this.title = title;
+    }
+
+    getTitle(): string {
+        return this.title;
     }
 }
 
@@ -166,8 +207,10 @@ export class XRideProtocol {
     private receivedChunkMap = new Map<number, any[]>();
     // @ts-ignore
     private editors: Map<number, Editor> = new Map();
+    // @ts-ignore
+    private toolWindows: Map<number, ToolWindow> = new Map();
     private sessionId: string = "";
-    private listeners: EditorChangeListener[] = [];
+    private listeners: IdeChangeListener[] = [];
 
     constructor(config: IXRideConfig) {
         this.config = {
@@ -318,17 +361,44 @@ export class XRideProtocol {
             editor.setContent(new IXRideImageContent(content));
         } else {
             console.log("Adding editor (image): ", index)
-            let editor = new Editor(name, new IXRideImageContent(content));
+            let editor = new Editor(index, name, new IXRideImageContent(content));
             this.editors.set(index, editor);
-            this.notifyListeners(index, editor, "add_editor");
+            this.notifyListeners("add_editor", editor);
         }
     }
 
-    private notifyListeners(index: number, editor: Editor, type: EditorChangeType) {
-        this.listeners.forEach(listener => listener(index, editor, type));
+    private addImageToolWindow(message: any) {
+        let index = message.number
+        let name = message.name
+        let content = message.chunk
+        if (this.toolWindows.has(index)) {
+            //console.log("Updating tool window (image): ", index)
+            let toolWindow = this.toolWindows.get(index)!!;
+            toolWindow.setContent(new IXRideImageContent(content));
+        } else {
+            console.log("Adding tool window (image): ", index)
+            let toolWindow = new ToolWindow(index, name, new IXRideImageContent(content));
+            this.toolWindows.set(index, toolWindow);
+            this.notifyListeners("add_tool_window", toolWindow);
+        }
     }
 
-    addEditorChangeListener(listener: EditorChangeListener) {
+    private removeToolWindow(index: number) {
+        console.log("Removing tool window: ", index)
+        let toolWindow = this.toolWindows.get(index)
+        if (toolWindow) {
+            toolWindow.dispose();
+            this.toolWindows.delete(index);
+        } else {
+            console.error("Tool window not found: ", index)
+        }
+    }
+
+    private notifyListeners(type: IdeChangeType, window?: XRWindow) {
+        this.listeners.forEach(listener => listener(type, window));
+    }
+
+    addIdeChangeListener(listener: IdeChangeListener) {
         this.listeners.push(listener);
     }
 
@@ -366,6 +436,7 @@ export class XRideProtocol {
         this.editors.forEach((editor, index) => {
             editor.setVisible(false)
         });
+        this.notifyListeners("hide_ide");
     }
 
     private showIde() {
@@ -373,6 +444,7 @@ export class XRideProtocol {
         this.editors.forEach((editor, index) => {
             editor.setVisible(true)
         });
+        this.notifyListeners("show_ide");
     }
 
     private negotiate() {
@@ -432,6 +504,12 @@ export class XRideProtocol {
                     break;
                 case 'file':
                     this.handleFile(message);
+                    break;
+                case 'add_tool_window':
+                    this.addImageToolWindow(message);
+                    break;
+                case 'remove_tool_window':
+                    this.removeToolWindow(message.number);
                     break;
                 default:
                     throw new Error('Unknown peer message: ' + message.type);
