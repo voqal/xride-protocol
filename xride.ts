@@ -25,17 +25,14 @@ export class IXRideTextContent implements IXRideContent {
 }
 
 export class IXRideImageContent implements IXRideContent {
-    content: string;
-    image: HTMLImageElement;
+    content: HTMLImageElement;
 
-    constructor(content: string) {
-        this.content = content;
-        this.image = new Image();
-        this.image.src = "data:image/png;base64," + content;
+    constructor(image: HTMLImageElement) {
+        this.content = image;
     }
 
     getImage(): HTMLImageElement {
-        return this.image;
+        return this.content;
     }
 }
 
@@ -357,16 +354,24 @@ export class XRideProtocol {
         let content = message.chunk
         if (this.editors.has(index)) {
             //console.log("Updating editor (image): ", index)
-            let editor = this.editors.get(index)!!;
-            editor.setContent(new IXRideImageContent(content));
+            //this.image.src = "data:image/png;base64," + content;
+            let image = new Image();
+            image.onload = () => {
+                let editor = this.editors.get(index)!!;
+                editor.setContent(new IXRideImageContent(image));
+            }
+            image.src = "data:image/png;base64," + content;
         } else {
-            let imageContent = new IXRideImageContent(content);
-            let imageSize = imageContent.getImage().width + "x" + imageContent.getImage().height
-            let editor = new Editor(index, name, imageContent);
-            console.log("Adding editor (image): " + index + " - Size: " + imageSize);
-
-            this.editors.set(index, editor);
-            this.notifyListeners("add_editor", editor);
+            let image = new Image();
+            image.onload = () => {
+                let imageContent = new IXRideImageContent(image);
+                let editor = new Editor(index, name, imageContent);
+                let imageSize = imageContent.getImage().width + "x" + imageContent.getImage().height
+                console.log("Adding editor (image): " + index + " - Size: " + imageSize);
+                this.editors.set(index, editor);
+                this.notifyListeners("add_editor", editor);
+            }
+            image.src = "data:image/png;base64," + content;
         }
     }
 
@@ -376,16 +381,23 @@ export class XRideProtocol {
         let content = message.chunk
         if (this.toolWindows.has(index)) {
             //console.log("Updating tool window (image): ", index)
-            let toolWindow = this.toolWindows.get(index)!!;
-            toolWindow.setContent(new IXRideImageContent(content));
+            let image = new Image();
+            image.onload = () => {
+                let toolWindow = this.toolWindows.get(index)!!;
+                toolWindow.setContent(new IXRideImageContent(image));
+            }
+            image.src = "data:image/png;base64," + content;
         } else {
-            let imageContent = new IXRideImageContent(content);
-            let imageSize = imageContent.getImage().width + "x" + imageContent.getImage().height
-            let toolWindow = new ToolWindow(index, name, imageContent);
-            console.log("Adding tool window (image): " + index + " - Size: " + imageSize);
-
-            this.toolWindows.set(index, toolWindow);
-            this.notifyListeners("add_tool_window", toolWindow);
+            let image = new Image();
+            image.onload = () => {
+                let imageContent = new IXRideImageContent(image);
+                let toolWindow = new ToolWindow(index, name, imageContent);
+                let imageSize = imageContent.getImage().width + "x" + imageContent.getImage().height
+                console.log("Adding tool window (image): " + index + " - Size: " + imageSize);
+                this.toolWindows.set(index, toolWindow);
+                this.notifyListeners("add_tool_window", toolWindow);
+            }
+            image.src = "data:image/png;base64," + content;
         }
     }
 
