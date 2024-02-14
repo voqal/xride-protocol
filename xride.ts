@@ -47,7 +47,6 @@ type EditorChangeListener = (number: number, editor: Editor, type: EditorChangeT
 
 export class Editor {
 
-    private needsRedraw: boolean = true;
     private disposed: boolean = false;
     private visible: boolean = true;
     private selected: boolean = false;
@@ -71,7 +70,6 @@ export class Editor {
             throw new Error('Editor is disposed');
         }
         this.content = content;
-        this.needsRedraw = true;
         this.notifyListeners("content");
     }
 
@@ -93,7 +91,6 @@ export class Editor {
             return; //no change
         }
         this.visible = visible;
-        this.needsRedraw = true;
         this.notifyListeners("visible");
     }
 
@@ -108,7 +105,6 @@ export class Editor {
             return; //no change
         }
         this.selected = selected;
-        this.needsRedraw = true;
         this.notifyListeners("selected");
     }
 
@@ -134,14 +130,6 @@ export class Editor {
 
     getUserData(key: string): any {
         return this.userData.get(key);
-    }
-
-    getNeedsRedraw(): boolean {
-        return this.needsRedraw;
-    }
-
-    setNeedsRedraw(needsRedraw: boolean) {
-        this.needsRedraw = needsRedraw;
     }
 
     private notifyListeners(type: EditorStateChangeType) {
