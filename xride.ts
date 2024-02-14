@@ -360,8 +360,11 @@ export class XRideProtocol {
             let editor = this.editors.get(index)!!;
             editor.setContent(new IXRideImageContent(content));
         } else {
-            console.log("Adding editor (image): ", index)
-            let editor = new Editor(index, name, new IXRideImageContent(content));
+            let imageContent = new IXRideImageContent(content);
+            let imageSize = imageContent.getImage().width + "x" + imageContent.getImage().height
+            let editor = new Editor(index, name, imageContent);
+            console.log("Adding editor (image): " + index + " - Size: " + imageSize);
+
             this.editors.set(index, editor);
             this.notifyListeners("add_editor", editor);
         }
@@ -376,8 +379,11 @@ export class XRideProtocol {
             let toolWindow = this.toolWindows.get(index)!!;
             toolWindow.setContent(new IXRideImageContent(content));
         } else {
-            console.log("Adding tool window (image): ", index)
-            let toolWindow = new ToolWindow(index, name, new IXRideImageContent(content));
+            let imageContent = new IXRideImageContent(content);
+            let imageSize = imageContent.getImage().width + "x" + imageContent.getImage().height
+            let toolWindow = new ToolWindow(index, name, imageContent);
+            console.log("Adding tool window (image): " + index + " - Size: " + imageSize);
+
             this.toolWindows.set(index, toolWindow);
             this.notifyListeners("add_tool_window", toolWindow);
         }
